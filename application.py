@@ -1,5 +1,6 @@
 from flask import Flask, render_template, request
 import time, os, json, base64, hmac, sha
+import yaml
 
 app = Flask(__name__)
 
@@ -19,19 +20,27 @@ def submit_form():
     avatar_url = request.form["avatar_url"]
 
     # Provide some procedure for storing the new details
-    update_account(username, full_name, avatar_url)
+    return update_account(username, full_name, avatar_url)
     
     # Redirect to the user's profile page, if appropriate
-    return redirect(url_for('profile'))
+    # return redirect(url_for('profile'))
+
+
+def update_account(username, full_name, avatar_url):
+    return render_template('display_url.html', username=username, name=full_name, avatar_url=avatar_url)
 
 
 # Listen for GET requests to yourdomain.com/sign_s3/
 @app.route('/sign_s3/')
 def sign_s3():
+    # Load YAML doc with the keys:
+    with open("s3_keys.yaml", "r") as f:
+        doc = yaml.load(f)
+
     # Load necessary information into the application:
-    AWS_ACCESS_KEY = os.environ.get('AWS_ACCESS_KEY_ID')
-    AWS_SECRET_KEY = os.environ.get('AWS_SECRET_ACCESS_KEY')
-    S3_BUCKET = os.environ.get('S3_BUCKET')
+    AWS_ACCESS_KEY = doc["aws-access-key"]
+    AWS_SECRET_KEY = doc["aws-secret-key"]
+    S3_BUCKET = doc["aws-s3-bucket"]
     
     # Collect information on the file from the GET parameters of the request:
     object_name = request.args.get('s3_object_name')
@@ -58,6 +67,7 @@ def sign_s3():
     
 # Main code
 if __name__ == '__main__':
+    app.debug = True
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)
     
